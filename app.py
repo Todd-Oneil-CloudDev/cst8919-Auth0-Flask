@@ -1,5 +1,6 @@
 import os
-from flask import Flask, redirect, render_template, request, url_for, g
+import asyncio
+from flask import Flask, redirect, render_template, request, url_for, g, session
 from auth0_server_python.auth_types import LogoutOptions
 from auth import auth0
 from dotenv import load_dotenv
@@ -16,36 +17,56 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Lax',
 )
 
+def run_async(thing):
+    """Run async Auth0 SDK calls safely inside Flask."""
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # No event loop exists yet
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    if loop.is_running():
+        # Flask already has an active loop → create a new one just for this task
+        new_loop = asyncio.new_event_loop()
+        try:
+            return new_loop.run_until_complete(thing)
+        finally:
+            new_loop.close()
+    else:
+        return loop.run_until_complete(thing)
+
 @app.before_request
 def store_request_response():
     """Make request/response available for Auth0 SDK"""
     g.store_options = {"request": request}
 
 @app.route('/')
-async def index():
+def index():
     """Home page - shows login button or user profile"""
-    user = await auth0.get_user(g.store_options)
+    user = run_async(auth0.get_user(g.store_options))
     return render_template('index.html', user=user)
 
 @app.route('/login')
-async def login():
+def login():
     """Redirect to Auth0 login"""
-    authorization_url = await auth0.start_interactive_login({}, g.store_options)
+    authorization_url = run_async(auth0.start_interactive_login({}, g.store_options))
+
     return redirect(authorization_url)
 
 @app.route('/callback')
-async def callback():
+def callback():
     """Handle Auth0 callback after login"""
     try:
-        result = await auth0.complete_interactive_login(str(request.url), g.store_options)
+        result = run_async(auth0.complete_interactive_login(str(request.url), g.store_options))
         return redirect(url_for('index'))
     except Exception as e:
         return f"Authentication error: {str(e)}", 400
 
 @app.route('/profile')
-async def profile():
+def profile():
     """Protected route - shows user profile"""
-    user = await auth0.get_user(g.store_options)
+    user = run_async(auth0.get_user(g.store_options))
     
     if not user:
         return redirect(url_for('login'))
@@ -53,15 +74,20 @@ async def profile():
     return render_template('profile.html', user=user)
 
 @app.route('/logout')
-async def logout():
+def logout():
     """Logout and redirect to Auth0 logout"""
     options = LogoutOptions(return_to=url_for("index", _external=True))
-    logout_url = await auth0.logout(options, g.store_options)
+    logout_url = run_async(auth0.logout(options, g.store_options))
     return redirect(logout_url)
 
 @app.route('/protected')
-async def protected():
+def protected():
     """protected endpoint for authorized users"""
+    user = run_async(auth0.get_user(g.store_options))
+    
+    if not user:
+        return redirect(url_for('login'))
+    return render_template('protected.html', user=user)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

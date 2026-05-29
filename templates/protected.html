@@ -13,7 +13,8 @@
         <div class="card">
             <img src="https://cdn.auth0.com/quantum-assets/dist/latest/logos/auth0/auth0-lockup-en-ondark.png"
                 alt="Auth0 Logo" class="logo">
-            <h1>User Profile</h1>
+            <h1>This is a Protected Page. If you're seeing this, you are logged
+                in</h1>
 
             <div class="profile-details">
                 {% if user.picture %}
@@ -47,7 +48,6 @@
 
             <div class="actions">
                 <a href="/" class="button">Back to Home</a>
-                <a href="/protected" class="button">Go To Protected Page</a>
                 <a href="/logout" class="button logout">Log Out</a>
             </div>
         </div>

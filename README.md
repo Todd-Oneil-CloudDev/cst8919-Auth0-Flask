@@ -59,3 +59,15 @@ The application should be ready and can be started with the following command:
 python3 app.py
 ```
 this will run the application locally. On first inital run when asked to log in there will be no credentials available so clicking the "register" link/button on the login screen will allow you to use whatever credentials you wish to make up/use i.e. user@test.com.
+
+### How the Application Works (High‑Level Overview)
+This Flask app integrates Auth0 authentication into a Python web application. It uses Auth0’s async Python SDK, but because Flask is synchronous, the app includes a small helper (run_async) that safely runs async Auth0 calls inside Flask routes.
+
+When a request comes in, the app stores the Flask request object in g.store_options so the Auth0 SDK can access it. Public routes (like /) check whether a user is logged in by calling auth0.get_user(). If a user is authenticated, their profile is passed to the template; otherwise, the page shows a login option.
+
+The /login route starts the Auth0 login flow by redirecting the user to Auth0’s hosted login page. After authentication, Auth0 redirects back to /callback, where the app completes the login transaction and stores the session.
+
+Protected routes such as /profile and /protected verify the user session; if no user is found, the app redirects to the login page. The /logout route clears the session and redirects the user through Auth0’s logout endpoint before returning them to the home page.
+
+### Things I Learned
+I wasn't aware that Flask can have some async issues when using Auth0's async library.  My understanding was that Flask itself was asynchronous but I guess that's not the case.  After doing some reasearch and asking Copilot why I was running into "event loop closed" errors when trying to log in after logging out, that's when I discovered I needed a helper function to aid in that communication.

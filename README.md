@@ -29,7 +29,6 @@ AUTH0_CLIENT_ID =<your client id>
 AUTH0_CLIENT_SECRET=<your client secret>
 AUTH0_SECRET=<your secret>
 AUTH0_REDIRECT_URI=<your redirect uri>
-MONITOR_CONNECTION_STRING=<app insights connection string>
 ```
 These variables will be populated with the information from your Auth0 application.
 

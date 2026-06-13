@@ -3,7 +3,6 @@ import asyncio
 import logging
 from flask import Flask, redirect, render_template, request, url_for, g, session
 from auth0_server_python.auth_types import LogoutOptions
-from azure.monitor.opentelemetry import configure_azure_monitor
 from auth import auth0
 from dotenv import load_dotenv
 from datetime import datetime, timezone
@@ -13,10 +12,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('AUTH0_SECRET')
 
-configure_azure_monitor(
-    connection_string=os.getenv('MONITOR_CONNECTION_STRING') 
-)
-
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Configure session for Auth0

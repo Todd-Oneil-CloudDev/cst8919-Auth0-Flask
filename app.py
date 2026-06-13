@@ -1,14 +1,23 @@
 import os
 import asyncio
+import logging
 from flask import Flask, redirect, render_template, request, url_for, g, session
 from auth0_server_python.auth_types import LogoutOptions
+from azure.monitor.opentelemetry import configure_azure_monitor
 from auth import auth0
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('AUTH0_SECRET')
+
+configure_azure_monitor(
+    connection_string=os.getenv('MONITOR_CONNECTION_STRING') 
+)
+
+logger = logging.getLogger(__name__)
 
 # Configure session for Auth0
 app.config.update(
@@ -57,10 +66,29 @@ def login():
 @app.route('/callback')
 def callback():
     """Handle Auth0 callback after login"""
+    timestamp = datetime.now(timezone.utc).isoformat()
     try:
         result = run_async(auth0.complete_interactive_login(str(request.url), g.store_options))
+        logger.warning("LOGIN_SUCCESS", extra={
+            "telemetry": {
+                "event_type": "LOGIN_SUCCESS",
+                "timestamp": timestamp,
+                "username": result.get("email") or result.get("sub"),
+                "ip": request.remote_addr,
+                "user_agent": request.headers.get("User-Agent"),
+            }
+        })
         return redirect(url_for('index'))
     except Exception as e:
+        logger.warning("LOGIN_FAILURE", extra={
+            "telemetry": {
+                "event_type": "LOGIN_FAILURE",
+                "timestamp": timestamp,
+                "ip": request.remote_addr,
+                "user_agent": request.headers.get("User-Agent"),
+                "reason": type(e).__name__
+            }
+        })
         return f"Authentication error: {str(e)}", 400
 
 @app.route('/profile')

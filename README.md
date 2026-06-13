@@ -1,4 +1,4 @@
-# Lab 1 Auth0 - Flask
+# Lab 1 Auth0 - Flask & Lab2 Threat Detection w/ Azure Monitor And KQL
 ## Author: Todd O'Neil
 
 [Demo Link](https://www.youtube.com/watch?v=N35v9OeLOoM)
@@ -29,6 +29,7 @@ AUTH0_CLIENT_ID =<your client id>
 AUTH0_CLIENT_SECRET=<your client secret>
 AUTH0_SECRET=<your secret>
 AUTH0_REDIRECT_URI=<your redirect uri>
+MONITOR_CONNECTION_STRING=<app insights connection string>
 ```
 These variables will be populated with the information from your Auth0 application.
 

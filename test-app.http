@@ -1,0 +1,8 @@
+### Test login redirect
+GET https://cst8919-lab2-g6cyfxcbbabadnas.canadacentral-01.azurewebsites.net/login
+
+### Test callback with missing code (should trigger LOGIN_FAILURE log)
+GET https://cst8919-lab2-g6cyfxcbbabadnas.canadacentral-01.azurewebsites.net/callback
+
+### Test /protected route
+GET https://cst8919-lab2-g6cyfxcbbabadnas.canadacentral-01.azurewebsites.net/protected

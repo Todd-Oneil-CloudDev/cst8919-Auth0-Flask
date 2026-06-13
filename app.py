@@ -61,6 +61,7 @@ def login():
 
 @app.route('/callback')
 def callback():
+    print(f"CALLBACK ARGS: {request.args}", flush=True)
     """Handle Auth0 callback after login"""
     timestamp = datetime.now(timezone.utc).isoformat()
     try:

@@ -11,6 +11,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('AUTH0_SECRET')
+domain = os.getenv('AUTH0_REDIRECT_URI').strip('callback')
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -112,7 +113,13 @@ def protected():
     
     if not user:
         return redirect(url_for('login'))
+    
+    roles = user.get(f"{domain}/roles")
+    if 'protected-access' not in roles:
+        return "Forbidden: insufficient permissions", 403
+
     return render_template('protected.html', user=user)
+
 
 # if __name__ == '__main__':
 #     app.run(debug=True, port=5000)

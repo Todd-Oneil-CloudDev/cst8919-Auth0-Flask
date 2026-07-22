@@ -15,8 +15,8 @@ app.secret_key = os.getenv('AUTH0_SECRET')
 app.logger.setLevel(logging.INFO)
 domain = os.getenv('AUTH0_REDIRECT_URI').strip('callback')
 
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.WARNING)
+# logger = logging.getLogger(__name__)
 
 # Configure session for Auth0
 app.config.update(
@@ -69,14 +69,16 @@ def callback():
     timestamp = datetime.now(timezone.utc).isoformat()
     try:
         result = run_async(auth0.complete_interactive_login(str(request.url), g.store_options))
-        email = result.get("email") or result.get("sub")
+        user = run_async(auth0.get_user(g.store_options))
+
+        email = user.get("email") or user.get("sub")
         un = GetUsername(str(email))
 
         app.logger.info(json.dumps({
                 "event_type": "LOGIN_SUCCESS",
                 "timestamp": timestamp,
                 "user_id": un,
-                "email": result.get("email"),
+                "email": email,
                 "ip": request.remote_addr,
                 "user_agent": request.headers.get("User-Agent"),
             }))
@@ -85,6 +87,8 @@ def callback():
         app.logger.warning(json.dumps({
                 "event_type": "LOGIN_FAILURE",
                 "timestamp": timestamp,
+                "user_id": un,
+                "email": email,
                 "ip": request.remote_addr,
                 "user_agent": request.headers.get("User-Agent"),
                 "reason": type(e).__name__
@@ -152,7 +156,7 @@ def protected():
     return render_template('protected.html', user=user)
 
 def GetUsername(email: str):
-    return str(email[:email.find('@')])
+    return str(email[:email.find('@') + 1])
 
 # if __name__ == '__main__':
 #     app.run(debug=True, port=5000)

@@ -13,6 +13,8 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('AUTH0_SECRET')
 app.logger.setLevel(logging.INFO)
+app.logger.propagate = False
+
 domain = os.getenv('AUTH0_REDIRECT_URI').strip('callback')
 
 # logging.basicConfig(level=logging.WARNING)
@@ -156,7 +158,7 @@ def protected():
     return render_template('protected.html', user=user)
 
 def GetUsername(email: str):
-    return str(email[:email.find('@') + 1])
+    return str(email[:email.find('@')])
 
 # if __name__ == '__main__':
 #     app.run(debug=True, port=5000)

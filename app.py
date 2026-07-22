@@ -67,18 +67,22 @@ def callback():
     timestamp = datetime.now(timezone.utc).isoformat()
     try:
         result = run_async(auth0.complete_interactive_login(str(request.url), g.store_options))
-        logger.warning("LOGIN_SUCCESS", extra={
+
+        un = GetUsername(result.get("email") or result.get("sub"))
+
+        app.logger.info("LOGIN_SUCCESS", extra={
             "telemetry": {
                 "event_type": "LOGIN_SUCCESS",
                 "timestamp": timestamp,
-                "username": result.get("email") or result.get("sub"),
+                "user_id": un,
+                "email": result.get("email"),
                 "ip": request.remote_addr,
                 "user_agent": request.headers.get("User-Agent"),
             }
         })
         return redirect(url_for('index'))
     except Exception as e:
-        logger.warning("LOGIN_FAILURE", extra={
+        app.logger.warning("LOGIN_FAILURE", extra={
             "telemetry": {
                 "event_type": "LOGIN_FAILURE",
                 "timestamp": timestamp,
@@ -110,16 +114,53 @@ def logout():
 def protected():
     """protected endpoint for authorized users"""
     user = run_async(auth0.get_user(g.store_options))
-    
+
     if not user:
+        app.logger.warning('UNAUTHORIZED_ACCESS', extra={
+            "telemetry": {
+                "event_type": 'UNAUTHORIZED_ACCESS',
+                "reason": "not_authenticated",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "ip": request.remote_addr,
+                "user_agent": request.headers.get("User-Agent"),
+            }
+        })
         return redirect(url_for('login'))
     
-    roles = user.get(f"{domain}/roles")
-    if 'protected-access' not in roles:
+    un = GetUsername(user.get('email'))
+    roles = user.get(f"{domain}/roles") or []
+    authorized = 'protected-access' in roles
+    
+    if not authorized:
+        app.logger.warning('UNAUTHORIZED_ACCESS', extra={
+            "telemetry": {
+                "event_type": 'UNAUTHORIZED_ACCESS',
+                "reason": "not_authorized",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "user_id": un,
+                "email": user.get('email'),
+                "ip": request.remote_addr,
+                "user_agent": request.headers.get("User-Agent"),
+            }
+        })
         return "Forbidden: insufficient permissions", 403
+    
+    app.logger.info('PROTECTED_ACCESS', extra={
+            "telemetry": {
+                "event_type": 'PROTECTED_ACCESS',
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "user_id": un,
+                "email": user.get('email'),
+                "authorized": authorized,
+                "ip": request.remote_addr,
+                "user_agent": request.headers.get("User-Agent"),
+            }
+        })
 
     return render_template('protected.html', user=user)
 
+def GetUsername(email: str):
+    return str(email[:email.find('@')])
 
 # if __name__ == '__main__':
 #     app.run(debug=True, port=5000)

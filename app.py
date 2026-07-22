@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+import json
 from flask import Flask, redirect, render_template, request, url_for, g, session
 from auth0_server_python.auth_types import LogoutOptions
 from auth import auth0
@@ -71,27 +72,23 @@ def callback():
         email = result.get("email") or result.get("sub")
         un = GetUsername(str(email))
 
-        app.logger.info("LOGIN_SUCCESS", extra={
-            "telemetry": {
+        app.logger.info(json.dumps({
                 "event_type": "LOGIN_SUCCESS",
                 "timestamp": timestamp,
                 "user_id": un,
                 "email": result.get("email"),
                 "ip": request.remote_addr,
                 "user_agent": request.headers.get("User-Agent"),
-            }
-        })
+            }))
         return redirect(url_for('index'))
     except Exception as e:
-        app.logger.warning("LOGIN_FAILURE", extra={
-            "telemetry": {
+        app.logger.warning(json.dumps({
                 "event_type": "LOGIN_FAILURE",
                 "timestamp": timestamp,
                 "ip": request.remote_addr,
                 "user_agent": request.headers.get("User-Agent"),
                 "reason": type(e).__name__
-            }
-        })
+            }))
         return f"Authentication error: {str(e)}", 400
 
 @app.route('/profile')
@@ -117,15 +114,13 @@ def protected():
     user = run_async(auth0.get_user(g.store_options))
 
     if not user:
-        app.logger.warning('UNAUTHORIZED_ACCESS', extra={
-            "telemetry": {
+        app.logger.warning(json.dumps({
                 "event_type": 'UNAUTHORIZED_ACCESS',
                 "reason": "not_authenticated",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "ip": request.remote_addr,
                 "user_agent": request.headers.get("User-Agent"),
-            }
-        })
+            }))
         return redirect(url_for('login'))
     
     un = GetUsername(user.get('email'))
@@ -133,8 +128,7 @@ def protected():
     authorized = 'protected-access' in roles
     
     if not authorized:
-        app.logger.warning('UNAUTHORIZED_ACCESS', extra={
-            "telemetry": {
+        app.logger.warning(json.dumps({
                 "event_type": 'UNAUTHORIZED_ACCESS',
                 "reason": "not_authorized",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -142,12 +136,10 @@ def protected():
                 "email": user.get('email'),
                 "ip": request.remote_addr,
                 "user_agent": request.headers.get("User-Agent"),
-            }
-        })
+            }))
         return "Forbidden: insufficient permissions", 403
     
-    app.logger.info('PROTECTED_ACCESS', extra={
-            "telemetry": {
+    app.logger.info(json.dumps({
                 "event_type": 'PROTECTED_ACCESS',
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "user_id": un,
@@ -155,8 +147,7 @@ def protected():
                 "authorized": authorized,
                 "ip": request.remote_addr,
                 "user_agent": request.headers.get("User-Agent"),
-            }
-        })
+            }))
 
     return render_template('protected.html', user=user)
 

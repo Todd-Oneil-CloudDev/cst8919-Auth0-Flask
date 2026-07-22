@@ -67,8 +67,8 @@ def callback():
     timestamp = datetime.now(timezone.utc).isoformat()
     try:
         result = run_async(auth0.complete_interactive_login(str(request.url), g.store_options))
-
-        un = GetUsername(result.get("email") or result.get("sub"))
+        email = result.get("email") or result.get("sub")
+        un = GetUsername(str(email))
 
         app.logger.info("LOGIN_SUCCESS", extra={
             "telemetry": {

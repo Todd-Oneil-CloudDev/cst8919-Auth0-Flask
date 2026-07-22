@@ -11,6 +11,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('AUTH0_SECRET')
+app.logger.setLevel(logging.INFO)
 domain = os.getenv('AUTH0_REDIRECT_URI').strip('callback')
 
 logging.basicConfig(level=logging.WARNING)
